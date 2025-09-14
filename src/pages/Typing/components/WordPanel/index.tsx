@@ -73,14 +73,29 @@ export default function WordPanel() {
       }
     } else {
       // 用户完成当前章节
-      dispatch({ type: TypingStateActionType.FINISH_CHAPTER })
-      if (isReviewMode) {
-        setReviewModeInfo((old) => ({ ...old, reviewRecord: old.reviewRecord ? { ...old.reviewRecord, isFinished: true } : undefined }))
+      if (state.isErrorWordPracticeMode) {
+        // 在错误单词练习模式下，检查是否还有错误单词
+        const hasWrongWords = state.chapterData.userInputLogs.some((log) => log.wrongCount > 0)
+        if (hasWrongWords) {
+          // 还有错误单词，重新开始练习（只练习仍有错误的单词）
+          dispatch({ type: TypingStateActionType.REPEAT_ERROR_WORDS })
+        } else {
+          // 所有错误单词都正确了，退出错误单词练习模式
+          dispatch({ type: TypingStateActionType.EXIT_ERROR_WORD_PRACTICE })
+        }
+      } else {
+        // 正常章节完成
+        dispatch({ type: TypingStateActionType.FINISH_CHAPTER })
+        if (isReviewMode) {
+          setReviewModeInfo((old) => ({ ...old, reviewRecord: old.reviewRecord ? { ...old.reviewRecord, isFinished: true } : undefined }))
+        }
       }
     }
   }, [
     state.chapterData.index,
     state.chapterData.words.length,
+    state.chapterData.userInputLogs,
+    state.isErrorWordPracticeMode,
     currentWordExerciseCount,
     loopWordTimes,
     dispatch,

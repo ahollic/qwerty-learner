@@ -131,7 +131,7 @@ const App: React.FC = () => {
     <TypingContext.Provider value={{ state: state, dispatch }}>
       <EnhancedPromotionModal />
       {state.isFinished && <DonateCard />}
-      {state.isFinished && <ResultScreen />}
+      {state.isFinished && !state.isErrorWordPracticeMode && <ResultScreen />}
       <Layout>
         <Header>
           <DictChapterButton />
@@ -160,7 +160,7 @@ const App: React.FC = () => {
                   ></div>
                 </div>
               ) : (
-                !state.isFinished && <WordPanel />
+                (!state.isFinished || state.isErrorWordPracticeMode) && <WordPanel />
               )}
             </div>
             <Speed />

@@ -51,4 +51,8 @@ export type TypingState = {
   isLoopSingleWord: boolean
   // 是否正在保存数据
   isSavingRecord: boolean
+  // 是否处于错误单词练习模式
+  isErrorWordPracticeMode: boolean
+  // 原始章节数据（用于错误单词练习模式）
+  originalChapterData?: ChapterData
 }
