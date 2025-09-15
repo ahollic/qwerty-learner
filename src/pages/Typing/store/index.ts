@@ -64,6 +64,7 @@ export enum TypingStateActionType {
   START_ERROR_WORD_PRACTICE = 'START_ERROR_WORD_PRACTICE',
   EXIT_ERROR_WORD_PRACTICE = 'EXIT_ERROR_WORD_PRACTICE',
   REPEAT_ERROR_WORDS = 'REPEAT_ERROR_WORDS',
+  MARK_WORD_MASTERED = 'MARK_WORD_MASTERED',
 }
 
 export type TypingStateAction =
@@ -94,6 +95,7 @@ export type TypingStateAction =
   | { type: TypingStateActionType.START_ERROR_WORD_PRACTICE }
   | { type: TypingStateActionType.EXIT_ERROR_WORD_PRACTICE }
   | { type: TypingStateActionType.REPEAT_ERROR_WORDS }
+  | { type: TypingStateActionType.MARK_WORD_MASTERED; payload: { wordIndex: number } }
 
 type Dispatch = (action: TypingStateAction) => void
 
@@ -272,7 +274,17 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
         // 重新设置章节数据为仍有错误的单词
         const newState = structuredClone(initialState)
         newState.chapterData.words = wrongWords
-        newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
+        // 保持原有的错误计数信息，只重置索引
+        newState.chapterData.userInputLogs = wrongWords.map((_, index) => {
+          const originalLog = state.chapterData.userInputLogs.find((log) => state.chapterData.words[log.index] === wrongWords[index])
+          return {
+            ...structuredClone(initialUserInputLog),
+            index,
+            wrongCount: originalLog?.wrongCount || 0,
+            correctCount: originalLog?.correctCount || 0,
+            LetterMistakes: originalLog?.LetterMistakes || {},
+          }
+        })
         newState.isErrorWordPracticeMode = true
         newState.isTransVisible = state.isTransVisible
         newState.originalChapterData = state.originalChapterData
@@ -290,6 +302,14 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
 
           return newState
         }
+      }
+      break
+    }
+    case TypingStateActionType.MARK_WORD_MASTERED: {
+      // 在错误单词练习模式下，标记某个单词为已掌握（将wrongCount设为0）
+      const wordIndex = action.payload.wordIndex
+      if (wordIndex >= 0 && wordIndex < state.chapterData.userInputLogs.length) {
+        state.chapterData.userInputLogs[wordIndex].wrongCount = 0
       }
       break
     }

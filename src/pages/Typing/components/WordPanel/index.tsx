@@ -74,7 +74,14 @@ export default function WordPanel() {
     } else {
       // 用户完成当前章节
       if (state.isErrorWordPracticeMode) {
-        // 在错误单词练习模式下，检查是否还有错误单词
+        // 在错误单词练习模式下，当前单词被正确完成，将其标记为不再需要练习
+        const currentWordLog = state.chapterData.userInputLogs[state.chapterData.index]
+        if (currentWordLog && currentWordLog.wrongCount > 0) {
+          // 如果当前单词之前有错误，现在正确完成了，将其标记为已掌握
+          dispatch({ type: TypingStateActionType.MARK_WORD_MASTERED, payload: { wordIndex: state.chapterData.index } })
+        }
+
+        // 检查是否还有错误单词需要练习
         const hasWrongWords = state.chapterData.userInputLogs.some((log) => log.wrongCount > 0)
         if (hasWrongWords) {
           // 还有错误单词，重新开始练习（只练习仍有错误的单词）
