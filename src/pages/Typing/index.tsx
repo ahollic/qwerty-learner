@@ -130,7 +130,7 @@ const App: React.FC = () => {
   return (
     <TypingContext.Provider value={{ state: state, dispatch }}>
       <EnhancedPromotionModal />
-      {state.isFinished && <DonateCard />}
+      {state.isFinished && !state.isErrorWordPracticeMode && <DonateCard />}
       {state.isFinished && !state.isErrorWordPracticeMode && <ResultScreen />}
       <Layout>
         <Header>
