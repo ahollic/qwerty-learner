@@ -247,7 +247,8 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
 
         return newState
       }
-      break
+      // 如果没有错误单词，保持当前状态不变
+      return state
     }
     case TypingStateActionType.EXIT_ERROR_WORD_PRACTICE: {
       if (state.originalChapterData) {
@@ -276,7 +277,9 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
         newState.chapterData.words = wrongWords
         // 保持原有的错误计数信息，只重置索引
         newState.chapterData.userInputLogs = wrongWords.map((_, index) => {
-          const originalLog = state.chapterData.userInputLogs.find((log) => state.chapterData.words[log.index] === wrongWords[index])
+          const originalLog = state.chapterData.userInputLogs.find(
+            (log) => state.chapterData.words[log.index]?.name === wrongWords[index]?.name,
+          )
           return {
             ...structuredClone(initialUserInputLog),
             index,
@@ -302,8 +305,9 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
 
           return newState
         }
+        // 如果没有原始章节数据，保持当前状态不变
+        return state
       }
-      break
     }
     case TypingStateActionType.MARK_WORD_MASTERED: {
       // 在错误单词练习模式下，标记某个单词为已掌握（将wrongCount设为0）
