@@ -10,7 +10,6 @@ import WordPanel from './components/WordPanel'
 import { useConfetti } from './hooks/useConfetti'
 import { useWordList } from './hooks/useWordList'
 import { TypingContext, TypingStateActionType, initialState, typingReducer } from './store'
-import { DonateCard } from '@/components/DonateCard'
 import EnhancedPromotionModal from '@/components/EnhancedPromotionModal'
 import Header from '@/components/Header'
 import Tooltip from '@/components/Tooltip'
@@ -130,7 +129,6 @@ const App: React.FC = () => {
   return (
     <TypingContext.Provider value={{ state: state, dispatch }}>
       <EnhancedPromotionModal />
-      {state.isFinished && !state.isErrorWordPracticeMode && <DonateCard />}
       {state.isFinished && !state.isErrorWordPracticeMode && <ResultScreen />}
       <Layout>
         <Header>
