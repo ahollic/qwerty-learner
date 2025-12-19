@@ -20,6 +20,8 @@ export default function WordPanel() {
   const [wordComponentKey, setWordComponentKey] = useState(0)
   const [currentWordExerciseCount, setCurrentWordExerciseCount] = useState(0)
   const { times: loopWordTimes } = useAtomValue(loopWordConfigAtom)
+  // 在错误单词练习模式下，强制单个单词循环为1次
+  const effectiveLoopTimes = state.isErrorWordPracticeMode ? 1 : loopWordTimes
   const currentWord = state.chapterData.words[state.chapterData.index]
   const nextWord = state.chapterData.words[state.chapterData.index + 1] as Word | undefined
 
@@ -52,9 +54,9 @@ export default function WordPanel() {
   )
 
   const onFinish = useCallback(() => {
-    if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < loopWordTimes - 1) {
+    if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < effectiveLoopTimes - 1) {
       // 用户完成当前单词
-      if (currentWordExerciseCount < loopWordTimes - 1) {
+      if (currentWordExerciseCount < effectiveLoopTimes - 1) {
         setCurrentWordExerciseCount((old) => old + 1)
         dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
         reloadCurrentWordComponent()
@@ -104,7 +106,7 @@ export default function WordPanel() {
     state.chapterData.userInputLogs,
     state.isErrorWordPracticeMode,
     currentWordExerciseCount,
-    loopWordTimes,
+    effectiveLoopTimes,
     dispatch,
     reloadCurrentWordComponent,
     isReviewMode,
