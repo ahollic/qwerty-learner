@@ -43,7 +43,7 @@ export default function LoopWordSwitcher() {
               <>
                 <IconRepeat />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.7] transform font-mono text-xs font-bold">
-                  {loopTimes === Number.MAX_SAFE_INTEGER ? '' : loopTimes}
+                  {loopTimes === Number.MAX_SAFE_INTEGER ? '' : loopTimes === 'untilCorrect' ? '✓' : loopTimes}
                 </span>
               </>
             )}
@@ -83,7 +83,7 @@ export default function LoopWordSwitcher() {
                           htmlFor={`r${index}`}
                           onClick={() => onChangeLoopTimes(value)}
                         >
-                          {value === Number.MAX_SAFE_INTEGER ? '无限' : value === 'untilCorrect' ? '无错误就通过' : value}
+                          {value === Number.MAX_SAFE_INTEGER ? '无限' : value === 'untilCorrect' ? '直到正确' : value}
                         </label>
                       </div>
                     ))}
