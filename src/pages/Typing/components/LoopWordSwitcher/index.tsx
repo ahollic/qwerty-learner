@@ -7,7 +7,7 @@ import { Fragment, useCallback, useState } from 'react'
 import IconRepeat from '~icons/tabler/repeat'
 import IconRepeatOff from '~icons/tabler/repeat-off'
 
-const loopOptions: LoopWordTimesOption[] = [1, 3, 5, 8, Number.MAX_SAFE_INTEGER]
+const loopOptions: LoopWordTimesOption[] = [1, 3, 5, 8, Number.MAX_SAFE_INTEGER, 'untilCorrect']
 export default function LoopWordSwitcher() {
   const [{ times: loopTimes }, setLoopWordConfig] = useAtom(loopWordConfigAtom)
   const [isOpen, setIsOpen] = useState(false)
@@ -83,7 +83,7 @@ export default function LoopWordSwitcher() {
                           htmlFor={`r${index}`}
                           onClick={() => onChangeLoopTimes(value)}
                         >
-                          {value === Number.MAX_SAFE_INTEGER ? '无限' : value}
+                          {value === Number.MAX_SAFE_INTEGER ? '无限' : value === 'untilCorrect' ? '无错误就通过' : value}
                         </label>
                       </div>
                     ))}

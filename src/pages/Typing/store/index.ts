@@ -36,6 +36,7 @@ export const initialUserInputLog: UserInputLog = {
   correctCount: 0,
   wrongCount: 0,
   LetterMistakes: {},
+  currentAttemptError: false,
 }
 
 export enum TypingStateActionType {
@@ -129,6 +130,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
 
       const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
       wordLog.correctCount += 1
+      // 正确地输入一个字母，不重置 currentAttemptError
       break
     }
     case TypingStateActionType.REPORT_WRONG_WORD: {
@@ -137,6 +139,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       const letterMistake = action.payload.letterMistake
       const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
       wordLog.wrongCount += 1
+      wordLog.currentAttemptError = true // 标记本轮尝试有错误
       wordLog.LetterMistakes = mergeLetterMistake(wordLog.LetterMistakes, letterMistake)
       break
     }
@@ -144,6 +147,11 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       state.chapterData.index += 1
       state.chapterData.wordCount += 1
       state.isShowSkip = false
+
+      // 重置新单词的 currentAttemptError
+      if (state.chapterData.index < state.chapterData.userInputLogs.length) {
+        state.chapterData.userInputLogs[state.chapterData.index].currentAttemptError = false
+      }
 
       if (action?.payload?.updateReviewRecord) {
         action.payload.updateReviewRecord(state)
@@ -153,6 +161,8 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
     case TypingStateActionType.LOOP_CURRENT_WORD:
       state.isShowSkip = false
       state.chapterData.wordCount += 1
+      // 重置 currentAttemptError 标志（用于 'untilCorrect' 模式）
+      state.chapterData.userInputLogs[state.chapterData.index].currentAttemptError = false
       break
     case TypingStateActionType.FINISH_CHAPTER:
       state.chapterData.wordCount += 1

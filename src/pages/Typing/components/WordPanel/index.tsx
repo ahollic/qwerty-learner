@@ -54,24 +54,36 @@ export default function WordPanel() {
   )
 
   const onFinish = useCallback(() => {
-    if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < effectiveLoopTimes - 1) {
-      // 用户完成当前单词
-      if (currentWordExerciseCount < effectiveLoopTimes - 1) {
-        setCurrentWordExerciseCount((old) => old + 1)
-        dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
-        reloadCurrentWordComponent()
+    // 获取当前单词的日志
+    const currentWordLog = state.chapterData.userInputLogs[state.chapterData.index]
+    const isLastWord = state.chapterData.index === state.chapterData.words.length - 1
+
+    // 无错误就通过模式：如果本轮尝试有错误，则重复；如果本轮尝试正确，则继续
+    const shouldRepeatForUntilCorrect = effectiveLoopTimes === 'untilCorrect' && currentWordLog && currentWordLog.currentAttemptError
+
+    // 如果是数字循环模式且还没达到指定次数，则继续循环
+    const shouldLoopForNumeric = typeof effectiveLoopTimes === 'number' && currentWordExerciseCount < effectiveLoopTimes - 1
+
+    // 决定是否需要重复当前单词
+    const shouldLoopCurrentWord = !isLastWord && (shouldLoopForNumeric || shouldRepeatForUntilCorrect)
+
+    if (shouldLoopCurrentWord) {
+      // 重复当前单词
+      setCurrentWordExerciseCount((old) => old + 1)
+      dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
+      reloadCurrentWordComponent()
+    } else if (state.chapterData.index < state.chapterData.words.length - 1) {
+      // 进入下一个单词
+      setCurrentWordExerciseCount(0)
+      if (isReviewMode) {
+        dispatch({
+          type: TypingStateActionType.NEXT_WORD,
+          payload: {
+            updateReviewRecord,
+          },
+        })
       } else {
-        setCurrentWordExerciseCount(0)
-        if (isReviewMode) {
-          dispatch({
-            type: TypingStateActionType.NEXT_WORD,
-            payload: {
-              updateReviewRecord,
-            },
-          })
-        } else {
-          dispatch({ type: TypingStateActionType.NEXT_WORD })
-        }
+        dispatch({ type: TypingStateActionType.NEXT_WORD })
       }
     } else {
       // 用户完成当前章节

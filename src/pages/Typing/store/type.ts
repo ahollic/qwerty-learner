@@ -24,6 +24,8 @@ export type UserInputLog = {
   correctCount: number
   wrongCount: number
   LetterMistakes: LetterMistakes
+  // 本轮尝试是否有错误（用于 'untilCorrect' 模式）
+  currentAttemptError?: boolean
 }
 
 export type TimerData = {
