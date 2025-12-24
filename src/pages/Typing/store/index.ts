@@ -278,26 +278,21 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       // 在错误单词练习模式下，只练习仍有错误的单词
       const wrongWords = state.chapterData.userInputLogs
         .filter((log) => log.wrongCount > 0)
-        .map((log) => state.chapterData.words[log.index])
-        .filter((word) => word !== undefined)
+        .map((log) => ({ word: state.chapterData.words[log.index], originalIndex: log.index }))
+        .filter((item) => item.word !== undefined)
 
       if (wrongWords.length > 0) {
         // 重新设置章节数据为仍有错误的单词
         const newState = structuredClone(initialState)
-        newState.chapterData.words = wrongWords
-        // 保持原有的错误计数信息，只重置索引
-        newState.chapterData.userInputLogs = wrongWords.map((_, index) => {
-          const originalLog = state.chapterData.userInputLogs.find(
-            (log) => state.chapterData.words[log.index]?.name === wrongWords[index]?.name,
-          )
-          return {
-            ...structuredClone(initialUserInputLog),
-            index,
-            wrongCount: originalLog?.wrongCount || 0,
-            correctCount: originalLog?.correctCount || 0,
-            LetterMistakes: originalLog?.LetterMistakes || {},
-          }
-        })
+        newState.chapterData.words = wrongWords.map((item) => item.word)
+        // 每一轮从零开始计数，重置所有计数
+        newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({
+          ...structuredClone(initialUserInputLog),
+          index,
+          wrongCount: 0,
+          correctCount: 0,
+          LetterMistakes: {},
+        }))
         newState.isErrorWordPracticeMode = true
         newState.isTransVisible = state.isTransVisible
         newState.originalChapterData = state.originalChapterData
