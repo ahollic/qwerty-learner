@@ -22,6 +22,47 @@
   <a><img src="https://img.shields.io/github/stars/RealKai42/qwerty-learner"/></a>
   <a><img src="https://img.shields.io/github/forks/RealKai42/qwerty-learner"/></a>
 </p>
+
+## 🆕 本Fork新增功能
+
+### ⚡ 错误练习模式
+
+**核心功能：** 专为您定制的智能错误单词攻克系统
+
+**工作机制：**
+
+当完成一个章节训练后，系统会显示本章节所有错误单词的页面，此时您可以点击"错误练习模式"按钮进入专项训练。
+
+**智能循环机制：**
+
+- **第一轮**：练习所有错误单词（假设有 5 个）
+- **第二轮**：只练习上一轮答错的单词（如果第一轮答对 3 个、错 2 个，第二轮只练习这 2 个）
+- **持续循环**：每次只练习上一轮答错的单词，直到全部答对为止
+- **自动退出**：当某一轮练习全部正确时，自动退出错误练习模式
+
+**示例流程：**
+
+```
+初始错误单词：5个
+第1轮练习：答对3个，错2个 → 下一轮练习2个
+第2轮练习：答对1个，错1个 → 下一轮练习1个
+第3轮练习：答对1个 → 退出模式 ✅
+```
+
+**价值：**
+
+- 精准定位薄弱点，避免重复练习已掌握单词
+- 智能缩减错误单词集合，快速攻克难关
+- 确保每个错误单词都被彻底掌握，不留知识盲区
+
+---
+
+### 🔄 练习直达正确的循环模式
+
+可设置练习轮次，系统自动循环播放当前词库直到达到指定次数。适合需要反复练习同一组单词的场景，帮助建立更牢固的肌肉记忆。
+
+---
+
 <div align=center>
 <a href="https://trendshift.io/repositories/3239" target="_blank" class="trendshift-badge"><img src="https://trendshift.io/api/badge/repositories/3239" alt="RealKai42%2Fqwerty-learner | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </div>
