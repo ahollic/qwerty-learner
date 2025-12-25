@@ -77,11 +77,22 @@ const ResultScreen = () => {
   }, [currentChapter, currentDictInfo.name, state.chapterData])
 
   const wrongWords = useMemo(() => {
-    return state.chapterData.userInputLogs
-      .filter((log) => log.wrongCount > 0)
-      .map((log) => state.chapterData.words[log.index])
-      .filter((word) => word !== undefined)
-  }, [state.chapterData.userInputLogs, state.chapterData.words])
+    if (state.isErrorWordPracticeMode) {
+      // 在错误单词练习模式下，显示当前轮次中仍有错误的单词
+      return state.chapterData.userInputLogs
+        .filter((log) => log.wrongCount > 0)
+        .map((log) => state.chapterData.words[log.index])
+        .filter((word) => word !== undefined)
+    } else {
+      // 在正常模式下，显示原始章节中的错误单词
+      return state.chapterData.userInputLogs
+        .filter((log) => log.wrongCount > 0)
+        .map((log) => state.chapterData.words[log.index])
+        .filter((word) => word !== undefined)
+    }
+  }, [state.chapterData.userInputLogs, state.chapterData.words, state.isErrorWordPracticeMode])
+
+  const hasWrongWords = wrongWords.length > 0
 
   const isLastChapter = useMemo(() => {
     return currentChapter >= currentDictInfo.chapterCount - 1
@@ -171,6 +182,10 @@ const ResultScreen = () => {
     navigate('/gallery')
   }, [navigate, setCurrentChapter, setReviewModeInfo])
 
+  const startErrorWordPractice = useCallback(() => {
+    dispatch({ type: TypingStateActionType.START_ERROR_WORD_PRACTICE })
+  }, [dispatch])
+
   useHotkeys(
     'enter',
     () => {
@@ -220,7 +235,13 @@ const ResultScreen = () => {
         <div className="flex h-screen items-center justify-center">
           <div className="my-card fixed flex w-[90vw] max-w-6xl flex-col overflow-hidden rounded-3xl bg-white pb-14 pl-10 pr-5 pt-10 shadow-lg dark:bg-gray-800 md:w-4/5 lg:w-3/5">
             <div className="text-center font-sans text-xl font-normal text-gray-900 dark:text-gray-400 md:text-2xl">
-              {`${currentDictInfo.name} ${isReviewMode ? '错题复习' : '第' + (currentChapter + 1) + '章'}`}
+              {`${currentDictInfo.name} ${
+                isReviewMode
+                  ? '错题复习'
+                  : state.isErrorWordPracticeMode
+                  ? `错误单词练习 (${wrongWords.length} 个待练习)`
+                  : '第' + (currentChapter + 1) + '章'
+              }`}
             </div>
             <button className="absolute right-7 top-5" onClick={exitButtonHandler}>
               <IconX className="text-gray-400" />
@@ -233,9 +254,24 @@ const ResultScreen = () => {
               </div>
               <div className="z-10 ml-6 flex-1 overflow-visible rounded-xl bg-indigo-50 dark:bg-gray-700">
                 <div className="customized-scrollbar z-20 ml-8 mr-1 flex h-80 flex-row flex-wrap content-start gap-4 overflow-y-auto overflow-x-hidden pr-7 pt-9">
-                  {wrongWords.map((word, index) => (
-                    <WordChip key={`${index}-${word.name}`} word={word} />
-                  ))}
+                  {state.isErrorWordPracticeMode ? (
+                    wrongWords.length > 0 ? (
+                      <>
+                        <div className="mb-4 flex w-full items-center justify-center text-lg text-gray-600 dark:text-gray-300">
+                          本轮仍有 {wrongWords.length} 个错误单词需要练习
+                        </div>
+                        {wrongWords.map((word, index) => (
+                          <WordChip key={`${index}-${word.name}`} word={word} />
+                        ))}
+                      </>
+                    ) : (
+                      <div className="flex w-full items-center justify-center text-lg text-green-600 dark:text-green-300">
+                        恭喜！所有错误单词都已掌握，练习完成！
+                      </div>
+                    )
+                  ) : (
+                    wrongWords.map((word, index) => <WordChip key={`${index}-${word.name}`} word={word} />)
+                  )}
                 </div>
                 <div className="align-center flex w-full flex-row justify-start rounded-b-xl bg-indigo-200 px-4 dark:bg-indigo-400">
                   <ConclusionBar mistakeLevel={mistakeLevel} mistakeCount={wrongWords.length} />
@@ -288,7 +324,7 @@ const ResultScreen = () => {
               </div>
             </div>
             <div className="mt-10 flex w-full justify-center gap-5 px-5 text-xl">
-              {!isReviewMode && (
+              {!isReviewMode && !state.isErrorWordPracticeMode && (
                 <>
                   <Tooltip content="快捷键：shift + enter">
                     <button
@@ -310,9 +346,21 @@ const ResultScreen = () => {
                       重复本章节
                     </button>
                   </Tooltip>
+                  {hasWrongWords && !state.isErrorWordPracticeMode && (
+                    <Tooltip content="重新练习本章节错误单词">
+                      <button
+                        className="my-btn-primary h-12 border-2 border-solid border-red-300 bg-red-50 text-base text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                        type="button"
+                        onClick={startErrorWordPractice}
+                        title="重新练习错误单词"
+                      >
+                        练习错误单词
+                      </button>
+                    </Tooltip>
+                  )}
                 </>
               )}
-              {!isLastChapter && !isReviewMode && (
+              {!isLastChapter && !isReviewMode && !state.isErrorWordPracticeMode && (
                 <Tooltip content="快捷键：enter">
                   <button
                     className={`{ isLastChapter ? 'cursor-not-allowed opacity-50' : ''} my-btn-primary h-12 text-base font-bold `}
@@ -333,6 +381,12 @@ const ResultScreen = () => {
                   title="练习其他章节"
                 >
                   练习其他章节
+                </button>
+              )}
+
+              {state.isErrorWordPracticeMode && (
+                <button className="my-btn-primary h-12 text-base font-bold" type="button" onClick={exitButtonHandler} title="返回章节结果">
+                  返回结果
                 </button>
               )}
             </div>

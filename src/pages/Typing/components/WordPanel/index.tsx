@@ -20,6 +20,8 @@ export default function WordPanel() {
   const [wordComponentKey, setWordComponentKey] = useState(0)
   const [currentWordExerciseCount, setCurrentWordExerciseCount] = useState(0)
   const { times: loopWordTimes } = useAtomValue(loopWordConfigAtom)
+  // 在错误单词练习模式下，强制单个单词循环为1次
+  const effectiveLoopTimes = state.isErrorWordPracticeMode ? 1 : loopWordTimes
   const currentWord = state.chapterData.words[state.chapterData.index]
   const nextWord = state.chapterData.words[state.chapterData.index + 1] as Word | undefined
 
@@ -52,37 +54,76 @@ export default function WordPanel() {
   )
 
   const onFinish = useCallback(() => {
-    if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < loopWordTimes - 1) {
-      // 用户完成当前单词
-      if (currentWordExerciseCount < loopWordTimes - 1) {
-        setCurrentWordExerciseCount((old) => old + 1)
-        dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
-        reloadCurrentWordComponent()
+    // 获取当前单词的日志
+    const currentWordLog = state.chapterData.userInputLogs[state.chapterData.index]
+    const isLastWord = state.chapterData.index === state.chapterData.words.length - 1
+
+    // 无错误就通过模式：如果本轮尝试有错误，则重复；如果本轮尝试正确，则继续
+    const shouldRepeatForUntilCorrect = effectiveLoopTimes === 'untilCorrect' && currentWordLog && currentWordLog.currentAttemptError
+
+    // 如果是数字循环模式且还没达到指定次数，则继续循环
+    const shouldLoopForNumeric = typeof effectiveLoopTimes === 'number' && currentWordExerciseCount < effectiveLoopTimes - 1
+
+    // 决定是否需要重复当前单词
+    const shouldLoopCurrentWord = !isLastWord && (shouldLoopForNumeric || shouldRepeatForUntilCorrect)
+
+    if (shouldLoopCurrentWord) {
+      // 重复当前单词
+      setCurrentWordExerciseCount((old) => old + 1)
+      dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
+      reloadCurrentWordComponent()
+    } else if (state.chapterData.index < state.chapterData.words.length - 1) {
+      // 进入下一个单词
+      setCurrentWordExerciseCount(0)
+      if (isReviewMode) {
+        dispatch({
+          type: TypingStateActionType.NEXT_WORD,
+          payload: {
+            updateReviewRecord,
+          },
+        })
       } else {
-        setCurrentWordExerciseCount(0)
-        if (isReviewMode) {
-          dispatch({
-            type: TypingStateActionType.NEXT_WORD,
-            payload: {
-              updateReviewRecord,
-            },
-          })
-        } else {
-          dispatch({ type: TypingStateActionType.NEXT_WORD })
-        }
+        dispatch({ type: TypingStateActionType.NEXT_WORD })
       }
     } else {
       // 用户完成当前章节
-      dispatch({ type: TypingStateActionType.FINISH_CHAPTER })
-      if (isReviewMode) {
-        setReviewModeInfo((old) => ({ ...old, reviewRecord: old.reviewRecord ? { ...old.reviewRecord, isFinished: true } : undefined }))
+      if (state.isErrorWordPracticeMode) {
+        const currentWordLog = state.chapterData.userInputLogs[state.chapterData.index]
+
+        // 检查当前单词在本轮是否有新错误
+        if (currentWordLog && !currentWordLog.currentAttemptError) {
+          // 本轮正确完成且无错误，检查是否还有其他错误单词
+          const hasOtherWrongWords = state.chapterData.userInputLogs.some(
+            (log, idx) => idx !== state.chapterData.index && log.wrongCount > 0,
+          )
+
+          if (hasOtherWrongWords) {
+            // 还有其他错误单词，标记当前单词为已掌握并重复练习
+            dispatch({ type: TypingStateActionType.MARK_WORD_MASTERED, payload: { wordIndex: state.chapterData.index } })
+            dispatch({ type: TypingStateActionType.REPEAT_ERROR_WORDS })
+          } else {
+            // 当前单词是最后一个错误单词，直接退出错误单词练习模式
+            dispatch({ type: TypingStateActionType.EXIT_ERROR_WORD_PRACTICE })
+          }
+        } else {
+          // 当前单词有错误，需要重复练习所有仍有错误的单词
+          dispatch({ type: TypingStateActionType.REPEAT_ERROR_WORDS })
+        }
+      } else {
+        // 正常章节完成
+        dispatch({ type: TypingStateActionType.FINISH_CHAPTER })
+        if (isReviewMode) {
+          setReviewModeInfo((old) => ({ ...old, reviewRecord: old.reviewRecord ? { ...old.reviewRecord, isFinished: true } : undefined }))
+        }
       }
     }
   }, [
     state.chapterData.index,
     state.chapterData.words.length,
+    state.chapterData.userInputLogs,
+    state.isErrorWordPracticeMode,
     currentWordExerciseCount,
-    loopWordTimes,
+    effectiveLoopTimes,
     dispatch,
     reloadCurrentWordComponent,
     isReviewMode,

@@ -27,6 +27,8 @@ export const initialState: TypingState = {
   isTransVisible: true,
   isLoopSingleWord: false,
   isSavingRecord: false,
+  isErrorWordPracticeMode: false,
+  originalChapterData: undefined,
 }
 
 export const initialUserInputLog: UserInputLog = {
@@ -34,6 +36,7 @@ export const initialUserInputLog: UserInputLog = {
   correctCount: 0,
   wrongCount: 0,
   LetterMistakes: {},
+  currentAttemptError: false,
 }
 
 export enum TypingStateActionType {
@@ -59,6 +62,10 @@ export enum TypingStateActionType {
   SET_IS_LOOP_SINGLE_WORD = 'SET_IS_LOOP_SINGLE_WORD',
   TOGGLE_IS_LOOP_SINGLE_WORD = 'TOGGLE_IS_LOOP_SINGLE_WORD',
   SET_REVISION_INDEX = 'SET_REVISION_INDEX',
+  START_ERROR_WORD_PRACTICE = 'START_ERROR_WORD_PRACTICE',
+  EXIT_ERROR_WORD_PRACTICE = 'EXIT_ERROR_WORD_PRACTICE',
+  REPEAT_ERROR_WORDS = 'REPEAT_ERROR_WORDS',
+  MARK_WORD_MASTERED = 'MARK_WORD_MASTERED',
 }
 
 export type TypingStateAction =
@@ -86,6 +93,10 @@ export type TypingStateAction =
   | { type: TypingStateActionType.SET_IS_SAVING_RECORD; payload: boolean }
   | { type: TypingStateActionType.SET_IS_LOOP_SINGLE_WORD; payload: boolean }
   | { type: TypingStateActionType.TOGGLE_IS_LOOP_SINGLE_WORD }
+  | { type: TypingStateActionType.START_ERROR_WORD_PRACTICE }
+  | { type: TypingStateActionType.EXIT_ERROR_WORD_PRACTICE }
+  | { type: TypingStateActionType.REPEAT_ERROR_WORDS }
+  | { type: TypingStateActionType.MARK_WORD_MASTERED; payload: { wordIndex: number } }
 
 type Dispatch = (action: TypingStateAction) => void
 
@@ -119,6 +130,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
 
       const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
       wordLog.correctCount += 1
+      // 正确地输入一个字母，不重置 currentAttemptError
       break
     }
     case TypingStateActionType.REPORT_WRONG_WORD: {
@@ -127,6 +139,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       const letterMistake = action.payload.letterMistake
       const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
       wordLog.wrongCount += 1
+      wordLog.currentAttemptError = true // 标记本轮尝试有错误
       wordLog.LetterMistakes = mergeLetterMistake(wordLog.LetterMistakes, letterMistake)
       break
     }
@@ -134,6 +147,11 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       state.chapterData.index += 1
       state.chapterData.wordCount += 1
       state.isShowSkip = false
+
+      // 重置新单词的 currentAttemptError
+      if (state.chapterData.index < state.chapterData.userInputLogs.length) {
+        state.chapterData.userInputLogs[state.chapterData.index].currentAttemptError = false
+      }
 
       if (action?.payload?.updateReviewRecord) {
         action.payload.updateReviewRecord(state)
@@ -143,6 +161,8 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
     case TypingStateActionType.LOOP_CURRENT_WORD:
       state.isShowSkip = false
       state.chapterData.wordCount += 1
+      // 重置 currentAttemptError 标志（用于 'untilCorrect' 模式）
+      state.chapterData.userInputLogs[state.chapterData.index].currentAttemptError = false
       break
     case TypingStateActionType.FINISH_CHAPTER:
       state.chapterData.wordCount += 1
@@ -176,6 +196,8 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       newState.isTyping = true
       newState.chapterData.words = action.shouldShuffle ? shuffle(state.chapterData.words) : state.chapterData.words
       newState.isTransVisible = state.isTransVisible
+      newState.isErrorWordPracticeMode = state.isErrorWordPracticeMode
+      newState.originalChapterData = state.originalChapterData
       return newState
     }
     case TypingStateActionType.NEXT_CHAPTER: {
@@ -215,6 +237,89 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
     }
     case TypingStateActionType.TOGGLE_IS_LOOP_SINGLE_WORD: {
       state.isLoopSingleWord = !state.isLoopSingleWord
+      break
+    }
+    case TypingStateActionType.START_ERROR_WORD_PRACTICE: {
+      // 获取错误单词
+      const wrongWords = state.chapterData.userInputLogs
+        .filter((log) => log.wrongCount > 0)
+        .map((log) => state.chapterData.words[log.index])
+        .filter((word) => word !== undefined)
+
+      if (wrongWords.length > 0) {
+        // 重新设置章节数据为错误单词
+        const newState = structuredClone(initialState)
+        newState.chapterData.words = wrongWords
+        newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
+        newState.isErrorWordPracticeMode = true
+        newState.isTransVisible = state.isTransVisible
+        newState.originalChapterData = structuredClone(state.chapterData)
+
+        return newState
+      }
+      // 如果没有错误单词，保持当前状态不变
+      return state
+    }
+    case TypingStateActionType.EXIT_ERROR_WORD_PRACTICE: {
+      if (state.originalChapterData) {
+        // 恢复到原始章节数据
+        const newState = structuredClone(initialState)
+        newState.chapterData = structuredClone(state.originalChapterData)
+        newState.isErrorWordPracticeMode = false
+        newState.isFinished = true
+        newState.isTransVisible = state.isTransVisible
+        newState.originalChapterData = undefined
+
+        return newState
+      }
+      break
+    }
+    case TypingStateActionType.REPEAT_ERROR_WORDS: {
+      // 在错误单词练习模式下，只练习仍有错误的单词
+      const wrongWords = state.chapterData.userInputLogs
+        .filter((log) => log.wrongCount > 0)
+        .map((log) => ({ word: state.chapterData.words[log.index], originalIndex: log.index }))
+        .filter((item) => item.word !== undefined)
+
+      if (wrongWords.length > 0) {
+        // 重新设置章节数据为仍有错误的单词
+        const newState = structuredClone(initialState)
+        newState.chapterData.words = wrongWords.map((item) => item.word)
+        // 每一轮从零开始计数，重置所有计数
+        newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({
+          ...structuredClone(initialUserInputLog),
+          index,
+          wrongCount: 0,
+          correctCount: 0,
+          LetterMistakes: {},
+        }))
+        newState.isErrorWordPracticeMode = true
+        newState.isTransVisible = state.isTransVisible
+        newState.originalChapterData = state.originalChapterData
+
+        return newState
+      } else {
+        // 没有错误单词了，退出错误单词练习模式
+        if (state.originalChapterData) {
+          const newState = structuredClone(initialState)
+          newState.chapterData = structuredClone(state.originalChapterData)
+          newState.isErrorWordPracticeMode = false
+          newState.isFinished = true
+          newState.isTransVisible = state.isTransVisible
+          newState.originalChapterData = undefined
+
+          return newState
+        }
+        // 如果没有原始章节数据，保持当前状态不变
+        return state
+      }
+    }
+    case TypingStateActionType.MARK_WORD_MASTERED: {
+      // 在错误单词练习模式下，标记某个单词为已掌握（将wrongCount设为0）
+      const wordIndex = action.payload.wordIndex
+      if (wordIndex >= 0 && wordIndex < state.chapterData.userInputLogs.length) {
+        state.chapterData.userInputLogs[wordIndex].wrongCount = 0
+      }
       break
     }
     default: {

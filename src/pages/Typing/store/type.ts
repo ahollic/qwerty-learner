@@ -24,6 +24,8 @@ export type UserInputLog = {
   correctCount: number
   wrongCount: number
   LetterMistakes: LetterMistakes
+  // 本轮尝试是否有错误（用于 'untilCorrect' 模式）
+  currentAttemptError?: boolean
 }
 
 export type TimerData = {
@@ -51,4 +53,8 @@ export type TypingState = {
   isLoopSingleWord: boolean
   // 是否正在保存数据
   isSavingRecord: boolean
+  // 是否处于错误单词练习模式
+  isErrorWordPracticeMode: boolean
+  // 原始章节数据（用于错误单词练习模式）
+  originalChapterData?: ChapterData
 }
