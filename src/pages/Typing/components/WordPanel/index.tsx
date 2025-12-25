@@ -94,7 +94,7 @@ export default function WordPanel() {
         if (currentWordLog && !currentWordLog.currentAttemptError) {
           // 本轮正确完成且无错误，检查是否还有其他错误单词
           const hasOtherWrongWords = state.chapterData.userInputLogs.some(
-            (log, idx) => idx !== state.chapterData.index && log.wrongCount > 0,
+            (log, idx) => idx !== state.chapterData.index && (log.wrongCount > 0 || log.currentAttemptError),
           )
 
           if (hasOtherWrongWords) {
