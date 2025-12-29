@@ -284,7 +284,8 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       if (wrongWords.length > 0) {
         // 重新设置章节数据为仍有错误的单词
         const newState = structuredClone(initialState)
-        newState.chapterData.words = wrongWords.map((item) => item.word)
+        // 使用 structuredClone 创建新的 word 对象引用，确保 Word 组件能检测到变化并重置状态
+        newState.chapterData.words = wrongWords.map((item) => structuredClone(item.word))
         // 每一轮从零开始计数，重置所有计数
         newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({
           ...structuredClone(initialUserInputLog),
