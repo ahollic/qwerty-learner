@@ -249,7 +249,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       if (wrongWords.length > 0) {
         // 重新设置章节数据为错误单词
         const newState = structuredClone(initialState)
-        newState.chapterData.words = wrongWords
+        newState.chapterData.words = wrongWords.map((w) => structuredClone(w))
         newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
         newState.isErrorWordPracticeMode = true
         newState.isTransVisible = state.isTransVisible
@@ -284,7 +284,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       if (wrongWords.length > 0) {
         // 重新设置章节数据为仍有错误的单词
         const newState = structuredClone(initialState)
-        newState.chapterData.words = wrongWords.map((item) => item.word)
+        newState.chapterData.words = wrongWords.map((item) => structuredClone(item.word))
         // 每一轮从零开始计数，重置所有计数
         newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({
           ...structuredClone(initialUserInputLog),

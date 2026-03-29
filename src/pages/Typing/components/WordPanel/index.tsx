@@ -101,6 +101,7 @@ export default function WordPanel() {
             // 还有其他错误单词，标记当前单词为已掌握并重复练习
             dispatch({ type: TypingStateActionType.MARK_WORD_MASTERED, payload: { wordIndex: state.chapterData.index } })
             dispatch({ type: TypingStateActionType.REPEAT_ERROR_WORDS })
+            reloadCurrentWordComponent()
           } else {
             // 当前单词是最后一个错误单词，直接退出错误单词练习模式
             dispatch({ type: TypingStateActionType.EXIT_ERROR_WORD_PRACTICE })
@@ -108,6 +109,7 @@ export default function WordPanel() {
         } else {
           // 当前单词有错误，需要重复练习所有仍有错误的单词
           dispatch({ type: TypingStateActionType.REPEAT_ERROR_WORDS })
+          reloadCurrentWordComponent()
         }
       } else {
         // 正常章节完成
