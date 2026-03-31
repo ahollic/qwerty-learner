@@ -1,4 +1,4 @@
-import type { TypingState, UserInputLog } from './type'
+import type { ChapterData, TypingState, UserInputLog } from './type'
 import type { WordWithIndex } from '@/typings'
 import type { LetterMistakes } from '@/utils/db/record'
 import '@/utils/db/review-record'
@@ -39,6 +39,28 @@ export const initialUserInputLog: UserInputLog = {
   currentAttemptError: false,
 }
 
+function makeFreshLogs(count: number): UserInputLog[] {
+  return Array.from({ length: count }, (_, index) => ({ ...structuredClone(initialUserInputLog), index }))
+}
+
+function restoreFromOriginal(state: TypingState): TypingState {
+  const newState = structuredClone(initialState)
+  newState.chapterData = structuredClone(state.originalChapterData!)
+  newState.isFinished = true
+  newState.isTransVisible = state.isTransVisible
+  return newState
+}
+
+function startPracticeWithWords(state: TypingState, wrongWords: WordWithIndex[], originalChapterData: ChapterData): TypingState {
+  const newState = structuredClone(initialState)
+  newState.chapterData.words = wrongWords.map((w) => ({ ...structuredClone(w) }))
+  newState.chapterData.userInputLogs = makeFreshLogs(wrongWords.length)
+  newState.isErrorWordPracticeMode = true
+  newState.isTransVisible = state.isTransVisible
+  newState.originalChapterData = structuredClone(originalChapterData)
+  return newState
+}
+
 export enum TypingStateActionType {
   SETUP_CHAPTER = 'SETUP_CHAPTER',
   SET_IS_SKIP = 'SET_IS_SKIP',
@@ -65,7 +87,6 @@ export enum TypingStateActionType {
   START_ERROR_WORD_PRACTICE = 'START_ERROR_WORD_PRACTICE',
   EXIT_ERROR_WORD_PRACTICE = 'EXIT_ERROR_WORD_PRACTICE',
   REPEAT_ERROR_WORDS = 'REPEAT_ERROR_WORDS',
-  MARK_WORD_MASTERED = 'MARK_WORD_MASTERED',
 }
 
 export type TypingStateAction =
@@ -93,10 +114,9 @@ export type TypingStateAction =
   | { type: TypingStateActionType.SET_IS_SAVING_RECORD; payload: boolean }
   | { type: TypingStateActionType.SET_IS_LOOP_SINGLE_WORD; payload: boolean }
   | { type: TypingStateActionType.TOGGLE_IS_LOOP_SINGLE_WORD }
-  | { type: TypingStateActionType.START_ERROR_WORD_PRACTICE }
+  | { type: TypingStateActionType.START_ERROR_WORD_PRACTICE; payload: { wrongWords: WordWithIndex[]; originalChapterData: ChapterData } }
   | { type: TypingStateActionType.EXIT_ERROR_WORD_PRACTICE }
-  | { type: TypingStateActionType.REPEAT_ERROR_WORDS }
-  | { type: TypingStateActionType.MARK_WORD_MASTERED; payload: { wordIndex: number } }
+  | { type: TypingStateActionType.REPEAT_ERROR_WORDS; payload: { wrongWords: WordWithIndex[] } }
 
 type Dispatch = (action: TypingStateAction) => void
 
@@ -111,8 +131,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       }
       newState.chapterData.index = initialIndex
       newState.chapterData.words = words
-      newState.chapterData.userInputLogs = words.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
-
+      newState.chapterData.userInputLogs = makeFreshLogs(words.length)
       return newState
     }
     case TypingStateActionType.SET_IS_SKIP:
@@ -127,41 +146,30 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       break
     case TypingStateActionType.REPORT_CORRECT_WORD: {
       state.chapterData.correctCount += 1
-
-      const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
-      wordLog.correctCount += 1
-      // 正确地输入一个字母，不重置 currentAttemptError
+      state.chapterData.userInputLogs[state.chapterData.index].correctCount += 1
       break
     }
     case TypingStateActionType.REPORT_WRONG_WORD: {
       state.chapterData.wrongCount += 1
-
-      const letterMistake = action.payload.letterMistake
       const wordLog = state.chapterData.userInputLogs[state.chapterData.index]
       wordLog.wrongCount += 1
-      wordLog.currentAttemptError = true // 标记本轮尝试有错误
-      wordLog.LetterMistakes = mergeLetterMistake(wordLog.LetterMistakes, letterMistake)
+      wordLog.currentAttemptError = true
+      wordLog.LetterMistakes = mergeLetterMistake(wordLog.LetterMistakes, action.payload.letterMistake)
       break
     }
     case TypingStateActionType.NEXT_WORD: {
       state.chapterData.index += 1
       state.chapterData.wordCount += 1
       state.isShowSkip = false
-
-      // 重置新单词的 currentAttemptError
       if (state.chapterData.index < state.chapterData.userInputLogs.length) {
         state.chapterData.userInputLogs[state.chapterData.index].currentAttemptError = false
       }
-
-      if (action?.payload?.updateReviewRecord) {
-        action.payload.updateReviewRecord(state)
-      }
+      action?.payload?.updateReviewRecord?.(state)
       break
     }
     case TypingStateActionType.LOOP_CURRENT_WORD:
       state.isShowSkip = false
       state.chapterData.wordCount += 1
-      // 重置 currentAttemptError 标志（用于 'untilCorrect' 模式）
       state.chapterData.userInputLogs[state.chapterData.index].currentAttemptError = false
       break
     case TypingStateActionType.FINISH_CHAPTER:
@@ -192,7 +200,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
     }
     case TypingStateActionType.REPEAT_CHAPTER: {
       const newState = structuredClone(initialState)
-      newState.chapterData.userInputLogs = state.chapterData.words.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
+      newState.chapterData.userInputLogs = makeFreshLogs(state.chapterData.words.length)
       newState.isTyping = true
       newState.chapterData.words = action.shouldShuffle ? shuffle(state.chapterData.words) : state.chapterData.words
       newState.isTransVisible = state.isTransVisible
@@ -202,7 +210,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
     }
     case TypingStateActionType.NEXT_CHAPTER: {
       const newState = structuredClone(initialState)
-      newState.chapterData.userInputLogs = state.chapterData.words.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
+      newState.chapterData.userInputLogs = makeFreshLogs(state.chapterData.words.length)
       newState.isTyping = true
       newState.isTransVisible = state.isTransVisible
       return newState
@@ -239,88 +247,24 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       state.isLoopSingleWord = !state.isLoopSingleWord
       break
     }
-    case TypingStateActionType.START_ERROR_WORD_PRACTICE: {
-      // 获取错误单词
-      const wrongWords = state.chapterData.userInputLogs
-        .filter((log) => log.wrongCount > 0)
-        .map((log) => state.chapterData.words[log.index])
-        .filter((word) => word !== undefined)
+    case TypingStateActionType.START_ERROR_WORD_PRACTICE:
+      return startPracticeWithWords(state, action.payload.wrongWords, action.payload.originalChapterData)
 
-      if (wrongWords.length > 0) {
-        // 重新设置章节数据为错误单词
-        const newState = structuredClone(initialState)
-        newState.chapterData.words = wrongWords.map((w) => structuredClone(w))
-        newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
-        newState.isErrorWordPracticeMode = true
-        newState.isTransVisible = state.isTransVisible
-        newState.originalChapterData = structuredClone(state.chapterData)
+    case TypingStateActionType.EXIT_ERROR_WORD_PRACTICE:
+      return state.originalChapterData ? restoreFromOriginal(state) : state
 
-        return newState
-      }
-      // 如果没有错误单词，保持当前状态不变
-      return state
-    }
-    case TypingStateActionType.EXIT_ERROR_WORD_PRACTICE: {
-      if (state.originalChapterData) {
-        // 恢复到原始章节数据
-        const newState = structuredClone(initialState)
-        newState.chapterData = structuredClone(state.originalChapterData)
-        newState.isErrorWordPracticeMode = false
-        newState.isFinished = true
-        newState.isTransVisible = state.isTransVisible
-        newState.originalChapterData = undefined
-
-        return newState
-      }
-      break
-    }
     case TypingStateActionType.REPEAT_ERROR_WORDS: {
-      // 在错误单词练习模式下，只练习仍有错误的单词
-      const wrongWords = state.chapterData.userInputLogs
-        .filter((log) => log.wrongCount > 0)
-        .map((log) => ({ word: state.chapterData.words[log.index], originalIndex: log.index }))
-        .filter((item) => item.word !== undefined)
-
+      const { wrongWords } = action.payload
       if (wrongWords.length > 0) {
-        // 重新设置章节数据为仍有错误的单词
         const newState = structuredClone(initialState)
-        newState.chapterData.words = wrongWords.map((item) => structuredClone(item.word))
-        // 每一轮从零开始计数，重置所有计数
-        newState.chapterData.userInputLogs = wrongWords.map((_, index) => ({
-          ...structuredClone(initialUserInputLog),
-          index,
-          wrongCount: 0,
-          correctCount: 0,
-          LetterMistakes: {},
-        }))
+        newState.chapterData.words = wrongWords.map((w) => ({ ...structuredClone(w) }))
+        newState.chapterData.userInputLogs = makeFreshLogs(wrongWords.length)
         newState.isErrorWordPracticeMode = true
         newState.isTransVisible = state.isTransVisible
         newState.originalChapterData = state.originalChapterData
-
         return newState
-      } else {
-        // 没有错误单词了，退出错误单词练习模式
-        if (state.originalChapterData) {
-          const newState = structuredClone(initialState)
-          newState.chapterData = structuredClone(state.originalChapterData)
-          newState.isErrorWordPracticeMode = false
-          newState.isFinished = true
-          newState.isTransVisible = state.isTransVisible
-          newState.originalChapterData = undefined
-
-          return newState
-        }
-        // 如果没有原始章节数据，保持当前状态不变
-        return state
       }
-    }
-    case TypingStateActionType.MARK_WORD_MASTERED: {
-      // 在错误单词练习模式下，标记某个单词为已掌握（将wrongCount设为0）
-      const wordIndex = action.payload.wordIndex
-      if (wordIndex >= 0 && wordIndex < state.chapterData.userInputLogs.length) {
-        state.chapterData.userInputLogs[wordIndex].wrongCount = 0
-      }
-      break
+      return state.originalChapterData ? restoreFromOriginal(state) : state
     }
     default: {
       return state
