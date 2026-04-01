@@ -307,66 +307,72 @@ const ResultScreen = () => {
                 </a>
               </div>
             </div>
-            <div className="mt-10 flex w-full justify-center gap-5 px-5 text-xl">
+            <div className="mt-10 flex w-full flex-col items-center gap-3 px-5 text-xl">
               {!isReviewMode && !errorPractice.isActive && (
                 <>
-                  <Tooltip content="快捷键：shift + enter">
-                    <button
-                      className="my-btn-primary h-12 border-2 border-solid border-gray-300 bg-white text-base text-gray-700 dark:border-gray-700 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
-                      type="button"
-                      onClick={dictationButtonHandler}
-                      title="默写本章节"
-                    >
-                      默写本章节
-                    </button>
-                  </Tooltip>
-                  <Tooltip content="快捷键：space">
-                    <button
-                      className="my-btn-primary h-12 border-2 border-solid border-gray-300 bg-white text-base text-gray-700 dark:border-gray-700 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
-                      type="button"
-                      onClick={repeatButtonHandler}
-                      title="重复本章节"
-                    >
-                      重复本章节
-                    </button>
-                  </Tooltip>
-                  {hasWrongWords && (
-                    <Tooltip content="重新练习本章节错误单词">
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <Tooltip content="快捷键：shift + enter">
                       <button
-                        className="my-btn-primary h-12 border-2 border-solid border-red-300 bg-red-50 text-base text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                        className="my-btn-primary h-10 rounded-lg border-2 border-solid border-gray-300 bg-white px-5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
                         type="button"
-                        onClick={errorPractice.startPractice}
-                        title="重新练习错误单词"
+                        onClick={dictationButtonHandler}
+                        title="默写本章节"
                       >
-                        练习错误单词
+                        默写本章节
                       </button>
                     </Tooltip>
-                  )}
-                  {hasUnfamiliarWords && (
-                    <Tooltip content="重新练习本章节不熟悉的单词">
+                    <Tooltip content="快捷键：space">
                       <button
-                        className="my-btn-primary h-12 border-2 border-solid border-amber-300 bg-amber-50 text-base text-amber-700 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-300 dark:hover:bg-amber-800"
+                        className="my-btn-primary h-10 rounded-lg border-2 border-solid border-gray-300 bg-white px-5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
                         type="button"
-                        onClick={errorPractice.startUnfamiliarPractice}
-                        title="练习不熟悉单词"
+                        onClick={repeatButtonHandler}
+                        title="重复本章节"
                       >
-                        练习不熟悉单词
+                        重复本章节
                       </button>
                     </Tooltip>
+                    {!isLastChapter && (
+                      <Tooltip content="快捷键：enter">
+                        <button
+                          className={`my-btn-primary h-10 rounded-lg px-5 text-sm font-bold`}
+                          type="button"
+                          onClick={nextButtonHandler}
+                          title="下一章节"
+                        >
+                          下一章节
+                        </button>
+                      </Tooltip>
+                    )}
+                  </div>
+                  {(hasWrongWords || hasUnfamiliarWords) && (
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {hasWrongWords && (
+                        <Tooltip content="重新练习本章节错误单词">
+                          <button
+                            className="my-btn-primary h-10 rounded-lg border-2 border-solid border-red-300 bg-red-50 px-5 text-sm text-red-700 dark:border-red-700 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                            type="button"
+                            onClick={errorPractice.startPractice}
+                            title="重新练习错误单词"
+                          >
+                            练习错误单词
+                          </button>
+                        </Tooltip>
+                      )}
+                      {hasUnfamiliarWords && (
+                        <Tooltip content="重新练习本章节不熟悉的单词">
+                          <button
+                            className="my-btn-primary h-10 rounded-lg border-2 border-solid border-amber-300 bg-amber-50 px-5 text-sm text-amber-700 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-300 dark:hover:bg-amber-800"
+                            type="button"
+                            onClick={errorPractice.startUnfamiliarPractice}
+                            title="练习不熟悉单词"
+                          >
+                            练习不熟悉单词
+                          </button>
+                        </Tooltip>
+                      )}
+                    </div>
                   )}
                 </>
-              )}
-              {!isLastChapter && !isReviewMode && !errorPractice.isActive && (
-                <Tooltip content="快捷键：enter">
-                  <button
-                    className={`{ isLastChapter ? 'cursor-not-allowed opacity-50' : ''} my-btn-primary h-12 text-base font-bold `}
-                    type="button"
-                    onClick={nextButtonHandler}
-                    title="下一章节"
-                  >
-                    下一章节
-                  </button>
-                </Tooltip>
               )}
 
               {isReviewMode && (
