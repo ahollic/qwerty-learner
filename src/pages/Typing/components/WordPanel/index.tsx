@@ -10,7 +10,7 @@ import { usePrefetchPronunciationSound } from '@/hooks/usePronunciation'
 import { isReviewModeAtom, isShowPrevAndNextWordAtom, loopWordConfigAtom, phoneticConfigAtom, reviewModeInfoAtom } from '@/store'
 import type { Word } from '@/typings'
 import { useAtomValue, useSetAtom } from 'jotai'
-import { useCallback, useContext, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 export default function WordPanel() {
@@ -125,6 +125,38 @@ export default function WordPanel() {
     },
     { preventDefault: true },
   )
+
+  const handleSkipAsFamiliar = useCallback(() => {
+    if (!state.isTyping) return
+    dispatch({ type: TypingStateActionType.SKIP_WORD_AS_FAMILIAR })
+    reloadCurrentWordComponent()
+  }, [state.isTyping, dispatch, reloadCurrentWordComponent])
+
+  // 处理练习模式下通过 Esc 跳过最后一个单词的情况
+  const lastWordSkippedInPractice = useRef(false)
+  // 当 words 列表变化（新一轮练习开始）时重置
+  useEffect(() => {
+    lastWordSkippedInPractice.current = false
+  }, [state.chapterData.words])
+  useEffect(() => {
+    if (
+      errorPractice.isActive &&
+      state.chapterData.words.length > 0 &&
+      state.chapterData.userInputLogs[state.chapterData.index]?.isSkipped &&
+      !lastWordSkippedInPractice.current
+    ) {
+      lastWordSkippedInPractice.current = true
+      errorPractice.handleLastWordInPractice(reloadCurrentWordComponent)
+    }
+  }, [errorPractice, state.chapterData, reloadCurrentWordComponent])
+
+  useHotkeys(
+    'escape',
+    () => {
+      handleSkipAsFamiliar()
+    },
+    { preventDefault: true },
+  )
   const [isShowTranslation, setIsHoveringTranslation] = useState(false)
 
   const handleShowTranslation = useCallback((checked: boolean) => {
@@ -168,10 +200,11 @@ export default function WordPanel() {
           <div className="relative flex w-full justify-center">
             {!state.isTyping && (
               <div className="absolute flex h-full w-full justify-center">
-                <div className="z-10 flex w-full items-center backdrop-blur-sm">
+                <div className="z-10 flex w-full flex-col items-center backdrop-blur-sm">
                   <p className="w-full select-none text-center text-xl text-gray-600 dark:text-gray-50">
                     按任意键{state.timerData.time ? '继续' : '开始'}
                   </p>
+                  <p className="mt-1 w-full select-none text-center text-xs text-gray-400 dark:text-gray-400">按 Esc 跳过熟悉的单词</p>
                 </div>
               </div>
             )}
@@ -189,6 +222,11 @@ export default function WordPanel() {
         )}
       </div>
       <Progress className={`mb-10 mt-auto ${state.isTyping ? 'opacity-100' : 'opacity-0'}`} />
+      {state.isTyping && (
+        <div className="pb-4 text-xs text-gray-400 dark:text-gray-500">
+          按 <kbd className="rounded border border-gray-300 px-1 py-0.5 text-xs dark:border-gray-600">Esc</kbd> 跳过熟悉的单词
+        </div>
+      )}
     </div>
   )
 }

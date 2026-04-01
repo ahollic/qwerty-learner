@@ -80,6 +80,8 @@ const ResultScreen = () => {
 
   const { wrongWords } = errorPractice
   const hasWrongWords = wrongWords.length > 0
+  const unfamiliarWords = errorPractice.unfamiliarWords
+  const hasUnfamiliarWords = unfamiliarWords.length > 0 && unfamiliarWords.length < state.chapterData.words.length
 
   const isLastChapter = useMemo(() => {
     return currentChapter >= currentDictInfo.chapterCount - 1
@@ -337,6 +339,18 @@ const ResultScreen = () => {
                         title="重新练习错误单词"
                       >
                         练习错误单词
+                      </button>
+                    </Tooltip>
+                  )}
+                  {hasUnfamiliarWords && (
+                    <Tooltip content="重新练习本章节不熟悉的单词">
+                      <button
+                        className="my-btn-primary h-12 border-2 border-solid border-amber-300 bg-amber-50 text-base text-amber-700 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-300 dark:hover:bg-amber-800"
+                        type="button"
+                        onClick={errorPractice.startUnfamiliarPractice}
+                        title="练习不熟悉单词"
+                      >
+                        练习不熟悉单词
                       </button>
                     </Tooltip>
                   )}

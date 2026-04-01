@@ -37,6 +37,7 @@ export const initialUserInputLog: UserInputLog = {
   wrongCount: 0,
   LetterMistakes: {},
   currentAttemptError: false,
+  isSkipped: false,
 }
 
 function makeFreshLogs(count: number): UserInputLog[] {
@@ -87,6 +88,7 @@ export enum TypingStateActionType {
   START_ERROR_WORD_PRACTICE = 'START_ERROR_WORD_PRACTICE',
   EXIT_ERROR_WORD_PRACTICE = 'EXIT_ERROR_WORD_PRACTICE',
   REPEAT_ERROR_WORDS = 'REPEAT_ERROR_WORDS',
+  SKIP_WORD_AS_FAMILIAR = 'SKIP_WORD_AS_FAMILIAR',
 }
 
 export type TypingStateAction =
@@ -117,6 +119,7 @@ export type TypingStateAction =
   | { type: TypingStateActionType.START_ERROR_WORD_PRACTICE; payload: { wrongWords: WordWithIndex[]; originalChapterData: ChapterData } }
   | { type: TypingStateActionType.EXIT_ERROR_WORD_PRACTICE }
   | { type: TypingStateActionType.REPEAT_ERROR_WORDS; payload: { wrongWords: WordWithIndex[] } }
+  | { type: TypingStateActionType.SKIP_WORD_AS_FAMILIAR }
 
 type Dispatch = (action: TypingStateAction) => void
 
@@ -265,6 +268,25 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
         return newState
       }
       return state.originalChapterData ? restoreFromOriginal(state) : state
+    }
+    case TypingStateActionType.SKIP_WORD_AS_FAMILIAR: {
+      state.chapterData.userInputLogs[state.chapterData.index].isSkipped = true
+      state.chapterData.wordCount += 1
+      state.isShowSkip = false
+      const skipNewIndex = state.chapterData.index + 1
+      if (skipNewIndex >= state.chapterData.words.length) {
+        if (state.isErrorWordPracticeMode) {
+          // 练习模式下跳过最后一个单词，不结束章节，保持 isTyping
+          // 由 WordPanel 通过 useEffect 检测 isSkipped 变化后调用 handleLastWordInPractice
+          state.isTyping = true
+        } else {
+          state.isTyping = false
+          state.isFinished = true
+        }
+      } else {
+        state.chapterData.index = skipNewIndex
+      }
+      break
     }
     default: {
       return state

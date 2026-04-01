@@ -26,6 +26,8 @@ export type UserInputLog = {
   LetterMistakes: LetterMistakes
   // 本轮尝试是否有错误（用于 'untilCorrect' 模式）
   currentAttemptError?: boolean
+  // 是否被跳过（标记为熟悉单词）
+  isSkipped?: boolean
 }
 
 export type TimerData = {

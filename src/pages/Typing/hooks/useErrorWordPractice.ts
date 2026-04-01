@@ -11,6 +11,13 @@ function getWrongWords(words: WordWithIndex[], logs: UserInputLog[]): WordWithIn
     .filter((w): w is WordWithIndex => w !== undefined)
 }
 
+function getUnfamiliarWords(words: WordWithIndex[], logs: UserInputLog[]): WordWithIndex[] {
+  return logs
+    .filter((log) => !log.isSkipped)
+    .map((log) => words[log.index])
+    .filter((w): w is WordWithIndex => w !== undefined)
+}
+
 function makeFreshLogs(count: number): UserInputLog[] {
   return Array.from({ length: count }, (_, index) => ({ ...structuredClone(initialUserInputLog), index }))
 }
@@ -74,5 +81,23 @@ export function useErrorWordPractice() {
     [state.chapterData, dispatch],
   )
 
-  return { isActive, startPractice, exitPractice, handleLastWordInPractice, wrongWords }
+  const unfamiliarWords = useMemo(
+    () => getUnfamiliarWords(state.chapterData.words, state.chapterData.userInputLogs),
+    [state.chapterData.words, state.chapterData.userInputLogs],
+  )
+
+  const startUnfamiliarPractice = useCallback(() => {
+    const words = getUnfamiliarWords(state.chapterData.words, state.chapterData.userInputLogs)
+    if (words.length === 0) return
+
+    dispatch({
+      type: TypingStateActionType.START_ERROR_WORD_PRACTICE,
+      payload: {
+        wrongWords: words,
+        originalChapterData: state.chapterData,
+      },
+    })
+  }, [state.chapterData, dispatch])
+
+  return { isActive, startPractice, exitPractice, handleLastWordInPractice, wrongWords, unfamiliarWords, startUnfamiliarPractice }
 }
