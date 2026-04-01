@@ -29,6 +29,7 @@ export const initialState: TypingState = {
   isSavingRecord: false,
   isErrorWordPracticeMode: false,
   originalChapterData: undefined,
+  originalTimerData: undefined,
 }
 
 export const initialUserInputLog: UserInputLog = {
@@ -47,8 +48,14 @@ function makeFreshLogs(count: number): UserInputLog[] {
 function restoreFromOriginal(state: TypingState): TypingState {
   const newState = structuredClone(initialState)
   newState.chapterData = structuredClone(state.originalChapterData!)
+  // 恢复原始计时数据，避免退出练习模式后章节耗时和 WPM 变为 0/Infinity
+  if (state.originalTimerData) {
+    newState.timerData = structuredClone(state.originalTimerData)
+  }
   newState.isFinished = true
   newState.isTransVisible = state.isTransVisible
+  // 标记为正在保存记录，防止退出练习模式后重复触发 saveChapterRecord
+  newState.isSavingRecord = true
   return newState
 }
 
@@ -59,6 +66,8 @@ function startPracticeWithWords(state: TypingState, wrongWords: WordWithIndex[],
   newState.isErrorWordPracticeMode = true
   newState.isTransVisible = state.isTransVisible
   newState.originalChapterData = structuredClone(originalChapterData)
+  // 保存原始计时数据，用于退出练习模式时恢复
+  newState.originalTimerData = structuredClone(state.timerData)
   return newState
 }
 
@@ -209,6 +218,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       newState.isTransVisible = state.isTransVisible
       newState.isErrorWordPracticeMode = state.isErrorWordPracticeMode
       newState.originalChapterData = state.originalChapterData
+      newState.originalTimerData = state.originalTimerData
       return newState
     }
     case TypingStateActionType.NEXT_CHAPTER: {
@@ -231,7 +241,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
 
       state.timerData.time = newTime
       state.timerData.accuracy = Math.round((state.chapterData.correctCount / inputSum) * 100)
-      state.timerData.wpm = Math.round((state.chapterData.wordCount / newTime) * 60)
+      state.timerData.wpm = newTime === 0 ? 0 : Math.round((state.chapterData.wordCount / newTime) * 60)
       break
     }
     case TypingStateActionType.ADD_WORD_RECORD_ID: {
@@ -265,6 +275,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
         newState.isErrorWordPracticeMode = true
         newState.isTransVisible = state.isTransVisible
         newState.originalChapterData = state.originalChapterData
+        newState.originalTimerData = state.originalTimerData
         return newState
       }
       return state.originalChapterData ? restoreFromOriginal(state) : state

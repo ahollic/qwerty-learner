@@ -59,4 +59,6 @@ export type TypingState = {
   isErrorWordPracticeMode: boolean
   // 原始章节数据（用于错误单词练习模式）
   originalChapterData?: ChapterData
+  // 原始计时数据（用于错误单词练习模式退出时恢复）
+  originalTimerData?: TimerData
 }
