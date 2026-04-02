@@ -1,5 +1,6 @@
 import { useExampleSentence } from '@/hooks/useExampleSentence'
-import { Sparkles, RotateCw, Loader2 } from 'lucide-react'
+import { useTTSHook } from '@/hooks/useTTSHook'
+import { Loader2, RotateCw, Sparkles, Volume2, VolumeX } from 'lucide-react'
 
 export interface ExampleSentenceProps {
   word: string
@@ -8,6 +9,16 @@ export interface ExampleSentenceProps {
 
 export default function ExampleSentence({ word, trans }: ExampleSentenceProps) {
   const { sentence, isLoading, error, generate } = useExampleSentence(word, trans)
+  const { isSpeaking, isLoading: isTTSLoading, speak, stop } = useTTSHook()
+
+  const handleSpeak = () => {
+    if (!sentence) return
+    if (isSpeaking) {
+      stop()
+    } else {
+      speak(sentence.enSentence)
+    }
+  }
 
   // 初始状态：显示按钮
   if (!sentence && !isLoading && !error) {
@@ -60,7 +71,23 @@ export default function ExampleSentence({ word, trans }: ExampleSentenceProps) {
       <div className="flex justify-center pb-4 pt-1">
         <div className="max-w-md rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50">
           <div className="mb-1 text-xs font-medium text-gray-400 dark:text-gray-500">📖 例句</div>
-          <p className="text-base leading-relaxed text-gray-800 dark:text-gray-200">{sentence.enSentence}</p>
+          <div className="flex items-start gap-2">
+            <p className="flex-1 text-base leading-relaxed text-gray-800 dark:text-gray-200">{sentence.enSentence}</p>
+            <button
+              onClick={handleSpeak}
+              disabled={isTTSLoading}
+              className="mt-0.5 flex-shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:bg-indigo-50 hover:text-indigo-500 disabled:opacity-50 dark:text-gray-500 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
+              title={isSpeaking ? '停止播放' : '播放发音'}
+            >
+              {isTTSLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isSpeaking ? (
+                <VolumeX className="h-4 w-4" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{sentence.zhSentence}</p>
           <div className="mt-2 flex justify-end">
             <button
