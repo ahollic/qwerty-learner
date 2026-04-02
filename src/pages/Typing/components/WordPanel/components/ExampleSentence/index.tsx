@@ -1,6 +1,7 @@
 import { useExampleSentence } from '@/hooks/useExampleSentence'
 import { useTTSHook } from '@/hooks/useTTSHook'
 import { Loader2, RotateCw, Sparkles, Volume2, VolumeX } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 
 export interface ExampleSentenceProps {
   word: string
@@ -10,6 +11,20 @@ export interface ExampleSentenceProps {
 export default function ExampleSentence({ word, trans }: ExampleSentenceProps) {
   const { sentence, isLoading, error, generate } = useExampleSentence(word, trans)
   const { isSpeaking, isLoading: isTTSLoading, speak, stop } = useTTSHook()
+  const prevSentenceRef = useRef<string | null>(null)
+
+  // 切换单词时重置追踪
+  useEffect(() => {
+    prevSentenceRef.current = null
+  }, [word])
+
+  // 例句生成完毕后自动播放
+  useEffect(() => {
+    if (sentence && sentence.enSentence !== prevSentenceRef.current) {
+      prevSentenceRef.current = sentence.enSentence
+      speak(sentence.enSentence)
+    }
+  }, [sentence, speak])
 
   const handleSpeak = () => {
     if (!sentence) return
