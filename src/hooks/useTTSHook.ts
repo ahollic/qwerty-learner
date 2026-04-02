@@ -20,21 +20,25 @@ export function useTTSHook(): UseTTSHookReturn {
   const [error, setError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  // 缓存：text -> blob URL，避免重复请求 API
+  const cacheRef = useRef<Map<string, string>>(new Map())
 
   // 组件卸载时清理
   useEffect(() => {
     return () => {
       cleanup()
+      // 清理所有缓存
+      cacheRef.current.forEach((url) => URL.revokeObjectURL(url))
+      cacheRef.current.clear()
     }
   }, [])
 
   const cleanup = useCallback(() => {
-    // 停止 siliconflow audio
+    // 停止当前播放（不销毁缓存）
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.onended = null
       audioRef.current.onerror = null
-      URL.revokeObjectURL(audioRef.current.src)
       audioRef.current = null
     }
     // 取消进行中的请求
@@ -48,6 +52,27 @@ export function useTTSHook(): UseTTSHookReturn {
     setIsLoading(false)
   }, [])
 
+  const playBlobUrl = useCallback((audioUrl: string) => {
+    const audio = new Audio(audioUrl)
+    audioRef.current = audio
+
+    setIsSpeaking(true)
+    setIsLoading(false)
+
+    audio.onended = () => {
+      audioRef.current = null
+      setIsSpeaking(false)
+    }
+
+    audio.onerror = () => {
+      audioRef.current = null
+      setError('音频播放失败')
+      setIsSpeaking(false)
+    }
+
+    audio.play()
+  }, [])
+
   const speakWithSiliconflow = useCallback(
     async (text: string) => {
       const apiKey = import.meta.env.VITE_SILICONFLOW_API_KEY as string
@@ -56,8 +81,15 @@ export function useTTSHook(): UseTTSHookReturn {
         return
       }
 
-      // 先清理之前的播放
+      // 停止当前播放
       cleanup()
+
+      // 命中缓存，直接播放
+      const cached = cacheRef.current.get(text)
+      if (cached) {
+        playBlobUrl(cached)
+        return
+      }
 
       const controller = new AbortController()
       abortControllerRef.current = controller
@@ -92,26 +124,11 @@ export function useTTSHook(): UseTTSHookReturn {
 
         const blob = await response.blob()
         const audioUrl = URL.createObjectURL(blob)
-        const audio = new Audio(audioUrl)
-        audioRef.current = audio
 
-        setIsSpeaking(true)
-        setIsLoading(false)
+        // 存入缓存
+        cacheRef.current.set(text, audioUrl)
 
-        audio.onended = () => {
-          URL.revokeObjectURL(audioUrl)
-          audioRef.current = null
-          setIsSpeaking(false)
-        }
-
-        audio.onerror = () => {
-          URL.revokeObjectURL(audioUrl)
-          audioRef.current = null
-          setError('音频播放失败')
-          setIsSpeaking(false)
-        }
-
-        await audio.play()
+        playBlobUrl(audioUrl)
       } catch (err) {
         if (controller.signal.aborted) return
         setError(err instanceof Error ? err.message : '语音合成失败')
@@ -119,12 +136,11 @@ export function useTTSHook(): UseTTSHookReturn {
         setIsLoading(false)
       }
     },
-    [cleanup],
+    [cleanup, playBlobUrl],
   )
 
   const speakWithBrowser = useCallback(
     (text: string) => {
-      // 先清理之前的播放
       cleanup()
 
       if (!window.speechSynthesis) {
