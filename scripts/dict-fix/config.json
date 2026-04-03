@@ -1,0 +1,13 @@
+{
+  "apiEndpoint": "https://api.deepseek.com/v1/chat/completions",
+  "model": "deepseek-chat",
+  "apiKeyEnvVar": "DEEPSEEK_API_KEY",
+  "batchSize": 50,
+  "concurrency": 20,
+  "targetDicts": ["CET4_T", "CET6_T", "voa", "coca20000", "Level8luan_2_T"],
+  "rules": {
+    "maxTranslationLength": 80,
+    "minTranslationCount": 1,
+    "placeholderValues": ["无", "-", "N/A", "none", "None", "—", "——"]
+  }
+}
