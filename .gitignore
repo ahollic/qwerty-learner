@@ -38,3 +38,6 @@ playwright-report
 
 .lh
 .history
+# Dict fix tool
+scripts/diff-output/
+scripts/backups/
