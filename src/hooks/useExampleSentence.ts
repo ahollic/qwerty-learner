@@ -119,8 +119,9 @@ export function useExampleSentence(word: string, trans?: string[]): UseExampleSe
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userContent },
         ],
-        max_tokens: 256,
-        temperature: 0.7,
+        max_tokens: 128,
+        temperature: 0.5,
+        stream: true,
       }
 
       if (config.extraBody) {
@@ -146,8 +147,48 @@ export function useExampleSentence(word: string, trans?: string[]): UseExampleSe
         throw new Error(errorData?.error?.message || `API 请求失败 (${response.status})`)
       }
 
-      const data = await response.json()
-      const content = data.choices?.[0]?.message?.content
+      // 流式读取响应
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('无法读取响应流')
+      }
+
+      const decoder = new TextDecoder()
+      let content = ''
+      let buffer = ''
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        // 检查 word 是否已变化
+        if (currentWordRef.current !== capturedWord) {
+          reader.cancel()
+          return
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed || !trimmed.startsWith('data:')) continue
+          const data = trimmed.slice(5).trim()
+          if (data === '[DONE]') continue
+
+          try {
+            const parsed = JSON.parse(data)
+            const delta = parsed.choices?.[0]?.delta?.content
+            if (delta) {
+              content += delta
+            }
+          } catch {
+            // 忽略解析错误，继续读取
+          }
+        }
+      }
 
       if (!content) {
         throw new Error('API 返回内容为空')
