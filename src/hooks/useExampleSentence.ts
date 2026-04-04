@@ -53,7 +53,7 @@ function getProviderConfig(): ProviderConfig {
 }
 
 const SYSTEM_PROMPT =
-  '你是一个英语学习助手。请为用户给出的英语单词生成一个简单实用的例句。只返回 JSON 格式：{"en": "英文例句", "zh": "中文翻译"}，不要返回任何其他内容。'
+  '你是一个英语学习助手。请为用户给出的英语单词生成一个日常、地道的英语例句，像母语者在真实生活中会说的话。要求：1) 场景贴近日常生活（如聊天、工作、购物等）；2) 用词自然，避免生硬翻译感；3) 优先使用口语化的短语和搭配。只返回 JSON 格式：{"en": "英文例句", "zh": "中文翻译"}，不要返回任何其他内容。'
 
 function extractJSON(text: string): { en: string; zh: string } | null {
   // 先尝试直接 parse
