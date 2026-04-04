@@ -5,9 +5,9 @@
  *
  * 流程: 加载词典 → 全量AI审核 → 有变更直接写回（修改前自动备份到 scripts/backups/）
  */
+import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import { execSync } from 'child_process'
 
 // ==================== 内联类型 ====================
 
@@ -285,12 +285,7 @@ interface FixResult {
   fixedTrans: string[]
 }
 
-async function fixDictFull(
-  dictFile: string,
-  words: Word[],
-  config: FixConfig,
-  apiKey: string,
-): Promise<FixResult[]> {
+async function fixDictFull(dictFile: string, words: Word[], config: FixConfig, apiKey: string): Promise<FixResult[]> {
   const batchSize = config.batchSize
   const concurrency = config.concurrency
   const total = words.length
