@@ -20,9 +20,15 @@ type ProviderConfig = {
 }
 
 function getProviderConfig(): ProviderConfig {
-  const provider = (import.meta.env.VITE_AI_PROVIDER as string) || 'siliconflow'
+  const provider = (import.meta.env.VITE_AI_PROVIDER as string) || 'deepseek'
 
   switch (provider) {
+    case 'deepseek':
+      return {
+        apiUrl: 'https://api.deepseek.com/v1/chat/completions',
+        apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY as string,
+        model: 'deepseek-chat', // DeepSeek V3.2
+      }
     case 'zhipu':
       return {
         apiUrl: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
@@ -31,12 +37,17 @@ function getProviderConfig(): ProviderConfig {
         extraBody: { thinking: { type: 'disabled' } },
       }
     case 'siliconflow':
-    default:
       return {
         apiUrl: 'https://api.siliconflow.cn/v1/chat/completions',
         apiKey: import.meta.env.VITE_SILICONFLOW_API_KEY as string,
         model: 'Qwen/Qwen3-8B',
         extraBody: { enable_thinking: false },
+      }
+    default:
+      return {
+        apiUrl: 'https://api.deepseek.com/v1/chat/completions',
+        apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY as string,
+        model: 'deepseek-chat',
       }
   }
 }
@@ -80,8 +91,13 @@ export function useExampleSentence(word: string, trans?: string[]): UseExampleSe
     const config = getProviderConfig()
 
     if (!config.apiKey) {
-      const provider = (import.meta.env.VITE_AI_PROVIDER as string) || 'siliconflow'
-      const keyName = provider === 'zhipu' ? 'VITE_ZHIPU_API_KEY' : 'VITE_SILICONFLOW_API_KEY'
+      const provider = (import.meta.env.VITE_AI_PROVIDER as string) || 'deepseek'
+      const keyMap: Record<string, string> = {
+        deepseek: 'VITE_DEEPSEEK_API_KEY',
+        zhipu: 'VITE_ZHIPU_API_KEY',
+        siliconflow: 'VITE_SILICONFLOW_API_KEY',
+      }
+      const keyName = keyMap[provider] || 'VITE_DEEPSEEK_API_KEY'
       setError(`未配置 API Key，请在 .env 文件中设置 ${keyName}`)
       return
     }
