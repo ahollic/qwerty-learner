@@ -1,6 +1,6 @@
-import { TypingStateActionType, initialUserInputLog } from '../store'
+import { TypingStateActionType } from '../store'
 import { TypingContext } from '../store'
-import type { TypingState, UserInputLog } from '../store/type'
+import type { UserInputLog } from '../store/type'
 import type { WordWithIndex } from '@/typings'
 import { useCallback, useContext, useMemo } from 'react'
 
@@ -18,12 +18,9 @@ function getUnfamiliarWords(words: WordWithIndex[], logs: UserInputLog[]): WordW
     .filter((w): w is WordWithIndex => w !== undefined)
 }
 
-function makeFreshLogs(count: number): UserInputLog[] {
-  return Array.from({ length: count }, (_, index) => ({ ...structuredClone(initialUserInputLog), index }))
-}
-
 export function useErrorWordPractice() {
-  const ctx = useContext(TypingContext)!
+  const ctx = useContext(TypingContext)
+  if (!ctx) throw new Error('useErrorWordPractice must be used within TypingContext')
   const { state, dispatch } = ctx
 
   const isActive = state.isErrorWordPracticeMode

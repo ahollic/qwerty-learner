@@ -47,7 +47,7 @@ function makeFreshLogs(count: number): UserInputLog[] {
 
 function restoreFromOriginal(state: TypingState): TypingState {
   const newState = structuredClone(initialState)
-  newState.chapterData = structuredClone(state.originalChapterData!)
+  newState.chapterData = structuredClone(state.originalChapterData as ChapterData)
   // 恢复原始计时数据，避免退出练习模式后章节耗时和 WPM 变为 0/Infinity
   if (state.originalTimerData) {
     newState.timerData = structuredClone(state.originalTimerData)

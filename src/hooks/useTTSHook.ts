@@ -25,12 +25,14 @@ export function useTTSHook(): UseTTSHookReturn {
 
   // 组件卸载时清理
   useEffect(() => {
+    const cache = cacheRef.current
     return () => {
       cleanup()
       // 清理所有缓存
-      cacheRef.current.forEach((url) => URL.revokeObjectURL(url))
-      cacheRef.current.clear()
+      cache.forEach((url) => URL.revokeObjectURL(url))
+      cache.clear()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const cleanup = useCallback(() => {
