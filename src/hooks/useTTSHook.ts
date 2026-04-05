@@ -100,6 +100,9 @@ export function useTTSHook(): UseTTSHookReturn {
       setError(null)
 
       try {
+        // 利用 CosyVoice2 的 <|endofprompt|> 指令注入情感控制，提升语音自然度
+        const ttsInput = `Speak in a natural, conversational tone as if chatting with a friend, with moderate pace and warm emotion.<|endofprompt|>${text}`
+
         const response = await fetch('https://api.siliconflow.cn/v1/audio/speech', {
           method: 'POST',
           headers: {
@@ -108,10 +111,10 @@ export function useTTSHook(): UseTTSHookReturn {
           },
           body: JSON.stringify({
             model: 'FunAudioLLM/CosyVoice2-0.5B',
-            input: text,
-            voice: 'FunAudioLLM/CosyVoice2-0.5B:alex',
+            input: ttsInput,
+            voice: 'FunAudioLLM/CosyVoice2-0.5B:diana',
             response_format: 'mp3',
-            speed: 1,
+            speed: 0.95,
             gain: 0,
           }),
           signal: controller.signal,
