@@ -114,7 +114,7 @@ export function useTTSHook(): UseTTSHookReturn {
             input: ttsInput,
             voice: 'FunAudioLLM/CosyVoice2-0.5B:diana',
             response_format: 'mp3',
-            speed: 0.95,
+            speed: 0.85,
             gain: 0,
           }),
           signal: controller.signal,
